@@ -28,11 +28,14 @@
 
 #include "HighScores.h"
 #include <RmlUi/Core/TypeConverter.h>
+#include <RmlUi/Core/Context.h>
+#include <RmlUi/Core/DataModel.h>
 #include <stdio.h>
+#include <algorithm>
 
 HighScores* HighScores::instance = nullptr;
 
-HighScores::HighScores() : Rml::DataSource("high_scores")
+HighScores::HighScores(Rml::Context* context) : Rml::DataSource("high_scores")
 {
 	RMLUI_ASSERT(instance == nullptr);
 	instance = this;
@@ -40,6 +43,28 @@ HighScores::HighScores() : Rml::DataSource("high_scores")
 	for (int i = 0; i < NUM_SCORES; i++)
 	{
 		scores[i].score = -1;
+	}
+
+
+	{
+		Rml::DataModelConstructor constructor = context->CreateDataModel("high_scores");
+		if (!constructor)
+			return;
+
+		if (auto score_handle = constructor.RegisterStruct<Score>())
+		{
+			score_handle.RegisterMember("name_required", &Score::name_required);
+			score_handle.RegisterMember("name", &Score::name);
+			score_handle.RegisterMemberFunc("colour", &Score::GetColour);
+			score_handle.RegisterMember("wave", &Score::wave);
+			score_handle.RegisterMember("score", &Score::score);
+		}
+
+		constructor.RegisterArray<ScoreList>();
+
+		constructor.Bind("scores", &score_list);
+
+		model_handle = constructor.GetModelHandle();
 	}
 
 	LoadScores();
@@ -54,14 +79,20 @@ HighScores::~HighScores()
 	instance = nullptr;
 }
 
-void HighScores::Initialise()
+void HighScores::Initialise(Rml::Context* context)
 {
-	new HighScores();
+	new HighScores(context);
 }
 
 void HighScores::Shutdown()
 {
 	delete instance;
+}
+
+void HighScores::Update()
+{
+	if (instance->model_handle)
+		instance->model_handle.Update();
 }
 
 void HighScores::GetRow(Rml::StringList& row, const Rml::String& table, int row_index, const Rml::StringList& columns)
@@ -146,10 +177,40 @@ void HighScores::SubmitName(const Rml::String& name)
 			instance->NotifyRowChange("scores", i, 1);
 		}
 	}
+
+	for (Score& score : instance->score_list)
+	{
+		if (score.name_required)
+		{
+			score.name = name;
+			score.name_required = false;
+
+			instance->model_handle.DirtyVariable("scores");
+		}
+	}
 }
 
 void HighScores::SubmitScore(const Rml::String& name, const Rml::Colourb& colour, int wave, int score, bool name_required)
 {
+	{
+		Score entry;
+		entry.name = name;
+		entry.colour = colour;
+		entry.wave = wave;
+		entry.score = score;
+		entry.name_required = name_required;
+
+		auto it = std::find_if(score_list.begin(), score_list.end(), [score](const Score& other) { return score > other.score; });
+
+		score_list.insert(it, std::move(entry));
+
+		if ((int)score_list.size() > NUM_SCORES)
+			score_list.pop_back();
+
+		model_handle.DirtyVariable("scores");
+	}
+
+
 	for (int i = 0; i < NUM_SCORES; i++)
 	{
 		if (score > scores[i].score)

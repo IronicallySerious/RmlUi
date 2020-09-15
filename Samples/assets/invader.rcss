@@ -318,7 +318,7 @@ textarea
 	font-size: 13px;
 }
 
-datagrid input.text
+datagrid input.text, table input.text
 {
 	box-sizing: border-box;
 	width: 100%;
@@ -416,7 +416,8 @@ dataselect selectbox option
 
 select selectbox option:nth-child(even),
 dataselect selectbox option:nth-child(even),
-datagrid datagridrow:nth-child(even)
+datagrid datagridrow:nth-child(even),
+tr:nth-child(even)
 {
 	background: #FFFFFFA0;
 }

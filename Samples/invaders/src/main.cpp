@@ -49,6 +49,8 @@ ShellRenderInterfaceExtensions *shell_renderer;
 
 void GameLoop()
 {
+	HighScores::Update();
+
 	context->Update();
 
 	shell_renderer->PrepareRenderBuffer();
@@ -131,7 +133,7 @@ int main(int RMLUI_UNUSED_PARAMETER(argc), char** RMLUI_UNUSED_PARAMETER(argv))
 	HighScoresShipFormatter ship_formatter;
 
 	// Construct the game singletons.
-	HighScores::Initialise();
+	HighScores::Initialise(context);
 
 	// Initialise the event instancer and handlers.
 	EventInstancer event_listener_instancer;

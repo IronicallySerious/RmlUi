@@ -31,14 +31,17 @@
 
 #include <RmlUi/Core/Elements/DataSource.h>
 #include <RmlUi/Core/Types.h>
+#include <RmlUi/Core/DataModel.h>
 
-const int NUM_SCORES = 10;
+constexpr int NUM_SCORES = 10;
 
 class HighScores : public Rml::DataSource
 {
 public:
-	static void Initialise();
+	static void Initialise(Rml::Context* context);
 	static void Shutdown();
+
+	static void Update();
 
 	void GetRow(Rml::StringList& row, const Rml::String& table, int row_index, const Rml::StringList& columns);
 	int GetNumRows(const Rml::String& table);
@@ -54,7 +57,7 @@ public:
 	static void SubmitName(const Rml::String& name);
 
 private:
-	HighScores();
+	HighScores(Rml::Context* context);
 	~HighScores();
 
 	static HighScores* instance;
@@ -70,9 +73,28 @@ private:
 		Rml::Colourb colour;
 		int score;
 		int wave;
+
+		void GetColour(Rml::Variant& variant) {
+			variant = "rgba(" + Rml::ToString(colour) + ')';
+		}
 	};
+	using ScoreList = Rml::Vector< Score >;
 
 	Score scores[NUM_SCORES];
+
+	ScoreList score_list;
+
+	Rml::DataModelHandle model_handle;
 };
+
+
+namespace DataHighScores {
+
+
+bool Initialize(Rml::Context* context);
+void Shutdown();
+
+
+}
 
 #endif
